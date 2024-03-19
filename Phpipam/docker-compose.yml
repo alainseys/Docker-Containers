@@ -1,0 +1,83 @@
+version: "3.2"
+services:
+  #https://github.com/phpipam-docker/phpipam-docker/blob/master/README.md
+  phpipam-web:
+    container_name: phpipam-webcontainer
+    image: phpipam/phpipam-www:latest
+    ports:
+      - "80:80"
+    environment:
+      TZ: ${TIME_ZONE}
+      IPAM_DATABASE_HOST: ${MYSQL_DB_HOSTNAME}
+      IPAM_DATABASE_PASS: ${MYSQL_DB_PASSWORD}
+      IPAM_DATABASE_WEBHOST: ${IPAM_DATABASE_WEBHOST}
+    restart: unless-stopped
+    volumes:
+      - phpipam-logo:/phpipam/css/images/logo
+      - phpipam-ca:/usr/local/share/ca-certificates:ro
+      - ./data/web:/phpipam
+      - ./data/apache2:/etc/apache2
+    depends_on:
+      - mysql
+  phpipam-cron:
+    container_name: phpipam-croncontainer
+    image: phpipam/phpipam-cron:latest
+    environment:
+      - TZ=Europe/London
+      - IPAM_DATABASE_HOST=phpipam-mariadb
+      - IPAM_DATABASE_PASS=my_secret_phpipam_pass
+      - SCAN_INTERVAL=1h
+    restart: unless-stopped
+    volumes:
+      - phpipam-ca:/usr/local/share/ca-certificates:ro
+    depends_on:
+      - mysql
+  mysql:
+    container_name: phpipam-mysqlcontainer
+    image: mysql:latest
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${MYSQL_DB_USERNAME}
+      MYSQL_PASSWORD: ${MYSQL_DB_PASSWORD}
+  mysql-backup:
+    container_name: mysql-backup
+    image: mysql:latest
+    environment: 
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+     - ./backup:/backup
+     - ./backup-scripts:/backup-scripts
+     - ./.env:/backup-scripts/.env
+    depends_on:
+     - mysql  
+  backup-scheduler:
+    container_name: backup-scheduler
+    image: alpine:latest
+    volumes:
+      - ./backup-scripts:/backup-scripts
+    command: sh -c 'echo "0 0 * * * /backup-scripts/backup.sh >> /var/log/cron.log 2>&1" | crontab - && crond -f'
+  phpmyadmin:
+    image: phpmyadmin
+    container_name: phpmyadmin
+    links:
+     - ${MYSQL_DB_HOSTNAME}
+    environment:
+      PMA_HOST: ${MYSQL_DB_HOSTNAME}
+      PMA_PORTS: ${MYSQL_DB_PORT}
+      #PMA_USER: ${MYSQL_ROOT_USER}
+      #PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      
+      #MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      #MYSQL_USER: ${MYSQL_DB_USERNAME}
+      #MYSQL_PASSWORD: ${MYSQL_DB_PASSWORD}
+    ports:
+     - 8080:80
+
+
+volumes:
+  phpipam-db-data:
+  phpipam-logo:
+  phpipam-ca:
+  backup:
+  backup-scripts:
+  
