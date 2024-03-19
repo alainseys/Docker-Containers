@@ -1,0 +1,22 @@
+version: "3"
+
+services:
+  sap-cloud:
+    container_name: sap-cloud-${SAPCC_VERSION}-${SAPJVM_VERSION}
+    restart: always
+    build:
+      context: bin/sapcloud
+      dockerfile: Dockerfile
+      #(https://tools.hana.ondemand.com/#cloud)
+      args:
+        - SAPCC_VERSION=${SAPCC_VERSION}
+        - SAPJVM_VERSION=${SAPJVM_VERSION}
+        - USER=sccadmin
+    ports:
+      - "8443:8443"
+    networks:
+      - sapnet
+
+networks:
+  sapnet:
+
