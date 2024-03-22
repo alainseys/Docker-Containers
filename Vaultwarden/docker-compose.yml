@@ -43,7 +43,6 @@ services:
       - LOG_FILE=./data/vaultwarden.log
       - LOG_LEVEL=DEBUG
       - USER_ATTACHMENT_LIMIT=102400
-      #- NODE_EXTRA_CA_CERTS=/opt/Docker/Vaultwarden_Self_Host/data/ssl/certs/vanmarcke2023.crt bw login
       #- JOB_POLL_INTERVAL_MS=30000
       #- SEND_PURGE_SCHEDULE="0 5 * * * *"
   nginx:
@@ -83,22 +82,5 @@ services:
       - TIMESTAMP=true
       - UID=0
       - GID=0
-  #fail2ban:
-  #  container_name: fail2ban
-  #  image: crazymax/fail2ban:latest
-  #  environment:
-  #   - TZ=Europe/Brussels
-  #   - F2B_DB_PURGE_AGE=30d
-  #   - F2B_LOG_TARGET=/data/fail2ban.log
-  #   - F2B_LOG_LEVEL=INFO
-  #   - F2B_IPTABLES_CHAIN=INPUT
-  #  volumes:
-  #   - ./data/fail2ban:/data
-  #   - ./data/bitwarden:/vaultwarden:ro
-  #  network_mode: "host"
-  #  privileged: true
-  #  cap_add:
-  #   - NET_ADMIN
-  #   - NET_RAW
 
 
