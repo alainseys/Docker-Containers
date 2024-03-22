@@ -1,0 +1,104 @@
+version: '3'
+
+services:
+  bitwarden:
+    image: vaultwarden/server:latest #swap tag to raspberry to run on a raspberry pi
+    container_name: vaultwarden
+    expose:
+      - "80"
+      - "3012"
+    volumes:
+      - ./data/bitwarden:/data
+    restart: on-failure
+    environment:
+      - WEBSOCKET_ENABLED=${WEBSOCKET_ENABLED}
+      - DOMAIN=${DOMAIN}
+      - LOGIN_RATELIMIT_MAX_BURST=${LOGIN_RATELIMIT_MAX_BURST}
+      - LOGIN_RATELIMIT_SECONDS=${LOGIN_RATELIMIT_SECONDS}
+      - ADMIN_RATELIMIT_MAX_BURST=${ADMIN_RATELIMIT_MAX_BURST}
+      - ADMIN_RATELIMIT_SECONDS=${ADMIN_RATELIMIT_SECONDS}
+      - ADMIN_TOKEN=${ADMIN_TOKEN}
+      - SENDS_ALLOWED=${SENDS_ALLOWED}
+      - EMERGENCY_ACCESS_ALLOWED=${EMERGENCY_ACCESS_ALLOWED}
+      - WEB_VAULT_ENABLED=${WEB_VAULT_ENABLED}
+      - SIGNUPS_ALLOWED=${SIGNUPS_ALLOWED}
+      - INVITATIONS_ALLOWED=${INVITATIONS_ALLOWED}
+      - SIGNUPS_VERIFY=${SIGNUPS_VERIFY}
+      - SIGNUPS_VERIFY_RESEND_TIME=${SIGNUPS_VERIFY_RESEND_TIME}
+      - SIGNUPS_VERIFY_RESEND_LIMIT=${SIGNUPS_VERIFY_RESEND_LIMIT}
+      - SIGNUPS_DOMAINS_WHITELIST=${SIGNUPS_DOMAINS_WHITELIST}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_AUTH_MECHANISM="Login"
+      - DUO_IKEY=${DUO_IKEY}
+      - DUO_SKEY=${DUO_SKEY}
+      - DUO_HOST=${DUO_HOST}
+      - ENABLE_DUO=${ENABLE_DUO}
+      - ORG_GROUPS_ENABLED=${ORG_GROUPS_ENABLED}
+      - ORG_EVENTS_ENABLED=${ORG_EVENTS_ENABLED}
+      - EVENT_DAYS_RETAIN=${EVENT_DAYS_RETAIN}
+      - LOG_FILE=./data/vaultwarden.log
+      - LOG_LEVEL=DEBUG
+      - USER_ATTACHMENT_LIMIT=102400
+      #- NODE_EXTRA_CA_CERTS=/opt/Docker/Vaultwarden_Self_Host/data/ssl/certs/vanmarcke2023.crt bw login
+      #- JOB_POLL_INTERVAL_MS=30000
+      #- SEND_PURGE_SCHEDULE="0 5 * * * *"
+  nginx:
+    image: nginx:1.15-alpine
+    container_name: nginx
+    restart: always
+    logging:
+     driver: "json-file"
+     options: 
+       max-size: "1G"
+       max-file: "30"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./data/nginx:/etc/nginx
+      - ./data/ssl:/etc/ssl
+      - ./data/logs/nginx:/var/log/nginx
+      - ./data/logs/bitwarden:/data
+
+  bw_backup:
+    image: bruceforce/vaultwarden-backup:latest #swap tag to rpi3 to run on a raspberry pi
+    container_name: vaultwarden-backup
+    restart: on-failure
+    depends_on:
+      - bitwarden
+    volumes:
+      - ./data/bitwarden:/data
+      - /opt/Bitwarden-Backup:/backup
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - DB_FILE=/data/db.sqlite3
+      - BACKUP_FILE=/backup/backup.sqlite3
+      - BACKUP_FILE_PERMISSIONS=777
+      - CRON_TIME=0 14 * * *
+      - TIMESTAMP=true
+      - UID=0
+      - GID=0
+  #fail2ban:
+  #  container_name: fail2ban
+  #  image: crazymax/fail2ban:latest
+  #  environment:
+  #   - TZ=Europe/Brussels
+  #   - F2B_DB_PURGE_AGE=30d
+  #   - F2B_LOG_TARGET=/data/fail2ban.log
+  #   - F2B_LOG_LEVEL=INFO
+  #   - F2B_IPTABLES_CHAIN=INPUT
+  #  volumes:
+  #   - ./data/fail2ban:/data
+  #   - ./data/bitwarden:/vaultwarden:ro
+  #  network_mode: "host"
+  #  privileged: true
+  #  cap_add:
+  #   - NET_ADMIN
+  #   - NET_RAW
+
+
